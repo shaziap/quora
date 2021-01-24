@@ -91,7 +91,7 @@ public class UserController {
         signinResponse.setId(userAuthEntity.getUserEntity().getUuid());
         signinResponse.setMessage("SIGNED IN SUCCESSFULLY");
 
-        return new ResponseEntity<SigninResponse>(signinResponse, HttpStatus.OK);
+        return new ResponseEntity<SigninResponse>(signinResponse, headers, HttpStatus.OK);
     }
 
     /**
