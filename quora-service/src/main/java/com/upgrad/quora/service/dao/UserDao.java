@@ -91,4 +91,17 @@ public class UserDao {
         return userEntity;
     }
 
+    /**
+     * The method delete given UserEntity Object.
+     *
+     * @param deleteUser
+     * @return
+     */
+    public UserEntity deleteUser(UserEntity deleteUser) {
+        if (deleteUser != null) {
+            entityManager.remove(deleteUser);
+        }
+        return deleteUser;
+    }
+
 }
