@@ -1,15 +1,19 @@
 package com.upgrad.quora.service.business;
 
+import com.upgrad.quora.service.common.SigninErrorCode;
 import com.upgrad.quora.service.common.SignupErrorCode;
 import com.upgrad.quora.service.dao.UserAuthDao;
 import com.upgrad.quora.service.dao.UserDao;
+import com.upgrad.quora.service.entity.UserAuthEntity;
 import com.upgrad.quora.service.entity.UserEntity;
+import com.upgrad.quora.service.exception.AuthenticationFailedException;
 import com.upgrad.quora.service.exception.SignUpRestrictedException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.ZonedDateTime;
 import java.util.UUID;
 
 @Service
@@ -28,7 +32,7 @@ public class UserService {
      * This method will accept user input from reqUserEntity object and it generated new uuid for user
      * and encrypt the password using PasswordCryptographyProvider and store it in object and send to
      * dao for persisting in database and finally return UserEntity along with uuid.
-     *
+     * <p>
      * This method will throw SignUpRestrictedException Exception if username or emailid provided by user
      * already exist in the database
      *
@@ -37,7 +41,7 @@ public class UserService {
      * @throws SignUpRestrictedException
      */
     @Transactional(propagation = Propagation.REQUIRED)
-    public UserEntity signup(UserEntity reqUserEntity) throws SignUpRestrictedException {
+    public UserEntity signUp(UserEntity reqUserEntity) throws SignUpRestrictedException {
 
         if (isUserNameExist(reqUserEntity.getUserName()))
             throw new SignUpRestrictedException(SignupErrorCode.SGR_001.getCode(), SignupErrorCode.SGR_001.getDefaultMessage());
@@ -75,5 +79,44 @@ public class UserService {
     private boolean isEmailExist(final String email) {
         boolean value = userDao.getUserByEmail(email) != null;
         return value;
+    }
+
+    /**
+     * This method encrypt the user provided password and compare that password with already existing encrypted password
+     * in the database, then it will generate a token with the help of JwtTokenProvider and create UserAuthEntity
+     * object save take along with other details in the user_auth table in database.
+     *
+     * @param username
+     * @param password
+     * @return UserAuthEntity
+     * @throws AuthenticationFailedException
+     */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public UserAuthEntity signIn(final String username, final String password) throws AuthenticationFailedException {
+
+        UserEntity userEntity = userDao.getUserByUserName(username);
+
+        if (userEntity == null)
+            throw new AuthenticationFailedException(SigninErrorCode.ATH_001.getCode(), SigninErrorCode.ATH_001.getDefaultMessage());
+
+        final String encryptedPassword = PasswordCryptographyProvider.encrypt(password, userEntity.getSalt());
+
+        if (!userEntity.getPassword().equals(encryptedPassword))
+            throw new AuthenticationFailedException(SigninErrorCode.ATH_002.getCode(), SigninErrorCode.ATH_002.getDefaultMessage());
+
+        JwtTokenProvider jwtTokenProvider = new JwtTokenProvider(encryptedPassword);
+        UserAuthEntity userAuthEntity = new UserAuthEntity();
+
+        userAuthEntity.setUuid(UUID.randomUUID().toString());
+        userAuthEntity.setUserEntity(userEntity);
+        final ZonedDateTime now = ZonedDateTime.now();
+        final ZonedDateTime expiresAt = now.plusHours(8);
+        userAuthEntity.setAccessToken(jwtTokenProvider.generateToken(userEntity.getUuid(), now, expiresAt));
+        userAuthEntity.setLoginAt(now);
+        userAuthEntity.setExpiresAt(expiresAt);
+
+        userAuthDao.createUserAuth(userAuthEntity);
+
+        return userAuthEntity;
     }
 }
