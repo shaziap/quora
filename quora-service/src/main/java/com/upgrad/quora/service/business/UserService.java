@@ -1,12 +1,14 @@
 package com.upgrad.quora.service.business;
 
 import com.upgrad.quora.service.common.SigninErrorCode;
+import com.upgrad.quora.service.common.SignoutErrorCode;
 import com.upgrad.quora.service.common.SignupErrorCode;
 import com.upgrad.quora.service.dao.UserAuthDao;
 import com.upgrad.quora.service.dao.UserDao;
 import com.upgrad.quora.service.entity.UserAuthEntity;
 import com.upgrad.quora.service.entity.UserEntity;
 import com.upgrad.quora.service.exception.AuthenticationFailedException;
+import com.upgrad.quora.service.exception.SignOutRestrictedException;
 import com.upgrad.quora.service.exception.SignUpRestrictedException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -118,5 +120,26 @@ public class UserService {
         userAuthDao.createUserAuth(userAuthEntity);
 
         return userAuthEntity;
+    }
+
+    /**
+     * This method initially verfies the token by searching for it in database if found, it will invalidate the token
+     * by setting logoutAt DateTime. If related UserAuthEntity object not found in database then it will throw exception
+     *
+     * @param accessToken
+     * @return UserEntity
+     * @throws SignOutRestrictedException
+     */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public UserEntity signOut(String accessToken) throws SignOutRestrictedException {
+        UserAuthEntity userAuth = userAuthDao.getUserAuthByAccessToken(accessToken);
+
+        if (userAuth == null)
+            throw new SignOutRestrictedException(SignoutErrorCode.SGR_001.getCode(), SignoutErrorCode.SGR_001.getDefaultMessage());
+
+        userAuth.setLogoutAt(ZonedDateTime.now());
+        userAuthDao.updateUserAuth(userAuth);
+
+        return userAuth.getUserEntity();
     }
 }

@@ -43,4 +43,13 @@ public class UserAuthDao {
 
         return userAuthEntity;
     }
+
+    /**
+     * This method update UserAuthEntity object in database.
+     *
+     * @param userAuth
+     */
+    public void updateUserAuth(UserAuthEntity userAuth){
+        entityManager.merge(userAuth);
+    }
 }
