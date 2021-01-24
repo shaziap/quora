@@ -31,14 +31,19 @@ public class UserDao {
      * @return UserEntity
      */
     public UserEntity getUserByUserName(final String userName) {
+        UserEntity userEntity = null;
+
         try {
-            return entityManager
-                    .createNamedQuery("userByUserName", UserEntity.class)
+
+            userEntity = entityManager.createNamedQuery("userByUserName", UserEntity.class)
                     .setParameter("userName", userName)
                     .getSingleResult();
-        } catch (NoResultException nre) {
-            return null;
+
+        } catch (NoResultException e) {
+            System.out.println(e.toString());
         }
+
+        return userEntity;
     }
 
     /**
@@ -48,14 +53,42 @@ public class UserDao {
      * @return UserEntity
      */
     public UserEntity getUserByEmail(final String email) {
+        UserEntity userEntity = null;
+
         try {
-            return entityManager
+
+            userEntity = entityManager
                     .createNamedQuery("userByEmail", UserEntity.class)
                     .setParameter("email", email)
                     .getSingleResult();
-        } catch (NoResultException nre) {
-            return null;
+
+        } catch (NoResultException e) {
+            System.out.println(e.toString());
         }
+
+        return userEntity;
+    }
+
+    /**
+     * This method fetch UserEntity object for giver uuid/userId
+     *
+     * @param userId
+     * @return UserEntity
+     */
+    public UserEntity getUserById(final String userId) {
+        UserEntity userEntity = null;
+
+        try {
+            userEntity = entityManager
+                    .createNamedQuery("userByUuid", UserEntity.class)
+                    .setParameter("uuid", userId)
+                    .getSingleResult();
+
+        } catch (NoResultException e) {
+            System.out.println(e.toString());
+        }
+
+        return userEntity;
     }
 
 }
